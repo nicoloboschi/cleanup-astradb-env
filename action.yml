@@ -1,0 +1,71 @@
+name: Astra DB Environment Cleanup
+description: Delete unused databases in Datastax Astra DB
+
+inputs:
+  token:
+    required: true
+    description: "Astra DB application token. It needs to have enough permissions to create/delete databases in the organization."
+  env:
+    description: "Astra DB environment. (ENV, PROD)"
+    default: "PROD"
+  threshold-seconds:
+    description: "Threshold in seconds to delete databases based on their last usage time."
+    default: "3600"
+  wait:
+    description: "Whether to wait for the database to be deleted or not."
+    default: "true"
+runs:
+  using: "composite"
+  steps:
+    - name: Delete databases
+      shell: bash
+      env:
+        TERM: linux
+      run: |
+        (curl -Ls "https://dtsx.io/get-astra-cli" | bash) || true
+        ASTRA_BIN=/home/runner/.astra/cli/astra
+        ASTRA_TOKEN="${{ inputs.token }}"
+        ASTRA_ENV="${{ inputs.env }}"
+        THRESHOLD_SECONDS="${{ inputs.threshold-seconds }}"
+        CURRENT_SECONDS=$(date +%s)
+        
+        echo "Listing databases:"
+        list_output=$($ASTRA_BIN db list -o json --token $ASTRA_TOKEN --env $ASTRA_ENV)
+        echo $list_output | jq -r '.data[].Name' | while IFS= read -r name; do
+          echo "==============="
+          echo "Database: $name"
+          describe_out=$($ASTRA_BIN db describe $name -o json --token $ASTRA_TOKEN --env $ASTRA_ENV)
+          status=$(echo "$describe_out" | jq -r '.data.status')
+          echo "Status: $status"
+          if [ "$status" == "TERMINATING" ]; then
+              echo "Skipping $name"
+              continue
+          fi
+          last_usage_time=$(echo $describe_out | jq -r '.data.lastUsageTime')
+          echo "Last usage time: $last_usage_time"
+          last_usage_seconds=$(date -d "$last_usage_time" +%s 2> /dev/null || date -j -u -f "%Y-%m-%dT%H:%M:%SZ" "$last_usage_time" +%s)
+          time_diff=$((CURRENT_SECONDS - last_usage_seconds))
+        
+          if [ "$time_diff" -gt "$THRESHOLD_SECONDS" ]; then
+              echo "Deleting $name.."
+              wait_param="--async"
+              if [ "${{ inputs.wait }}" == "true" ]; then
+                  wait_param=""
+              fi
+              $ASTRA_BIN db delete -v "$name" --token $ASTRA_TOKEN --env $ASTRA_ENV $wait_param
+              if [ "${{ inputs.wait }}" == "true" ]; then
+                  echo "Database $name deleted"
+              else
+                  echo "Database $name issued to deletion"
+              fi
+          else
+              echo "Database $name skipped"
+          fi
+        done
+
+
+
+
+branding:
+  icon: 'database'
+  color: 'orange'

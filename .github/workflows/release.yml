@@ -1,0 +1,25 @@
+name: Release
+
+on:
+  push:
+    tags:
+    - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ncipollo/release-action@v1
+      with:
+        generateReleaseNotes: true
+    - name: Git config
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+    - name: Tag new target
+      run: git tag -f v1 ${{ github.ref }}
+    - name: Push new tag
+      run: git push origin v1 --force
