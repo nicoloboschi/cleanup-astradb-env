@@ -1,7 +1,10 @@
 # `@nicoloboschi/cleanup-astradb-env` Github action
 
 This action deletes [DataStax AstraDB](https://www.datastax.com/products/datastax-astra) unused databases.
-To create a database, use the `@nicoloboschi/setup-astradb` [action](https://github.com/nicoloboschi/setup-astradb).
+
+Related actions:
+- `@nicoloboschi/setup-astradb` [action](https://github.com/nicoloboschi/setup-astradb): Creates a AstraDB database.
+- `@nicoloboschi/cleanup-astradb` [action](https://github.com/nicoloboschi/cleanup-astradb): Deletes a specific AstraDB database.
 
 ## Action Inputs
 
