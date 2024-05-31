@@ -37,7 +37,7 @@ runs:
           describe_out=$($ASTRA_BIN db describe $name -o json --token $ASTRA_TOKEN --env $ASTRA_ENV)
           status=$(echo "$describe_out" | jq -r '.data.status')
           echo "Status: $status"
-          if [ "$status" == "TERMINATING" ]; then
+          if [[ "$status" == "TERMINATING" || "$status" == "INITIALIZING" ]]; then
               echo "Skipping $name"
               continue
           fi
