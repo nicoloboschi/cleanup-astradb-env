@@ -52,12 +52,12 @@ runs:
               if [ "${{ inputs.wait }}" == "true" ]; then
                   wait_param=""
               fi
-              $ASTRA_BIN db delete -v "$name" --token $ASTRA_TOKEN --env $ASTRA_ENV $wait_param
               if [ "${{ inputs.wait }}" == "true" ]; then
-                  echo "Database $name deleted"
+                  ok_log="Database $name deleted"
               else
-                  echo "Database $name issued to deletion"
+                  ok_log="Database $name issued to deletion"
               fi
+              ($ASTRA_BIN db delete -v "$name" --token $ASTRA_TOKEN --env $ASTRA_ENV $wait_param && echo $ok_log) || echo "Deletion failed, continue with other databases"
           else
               echo "Database $name skipped"
           fi
